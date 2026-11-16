@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.name }} - SkillSwap{% endblock %}
+
+{% macro tags(services) %}
+<ul class="tags">{% for s in services %}<li class="tag">{{ s }}</li>{% endfor %}</ul>
+{% endmacro %}
+
+{% block content %}
+<h1>{{ profile.name }}</h1>
+
+<section class="panel">
+  <h2>Services Offered</h2>
+  {% if profile.offers %}{{ tags(profile.offers) }}{% else %}<p class="muted">No services offered yet.</p>{% endif %}
+  <form method="post" action="{{ url_for('add_offer', profile_id=profile.id) }}">
+    <label for="offer-service">Add a service you offer</label>
+    <div class="form-row">
+      <input type="text" id="offer-service" name="service" placeholder="e.g. Logo design" required>
+      <button type="submit">Add offer</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Services Wanted</h2>
+  {% if profile.wants %}{{ tags(profile.wants) }}{% else %}<p class="muted">No services wanted yet.</p>{% endif %}
+  <form method="post" action="{{ url_for('add_want', profile_id=profile.id) }}">
+    <label for="want-service">Add a service you want</label>
+    <div class="form-row">
+      <input type="text" id="want-service" name="service" placeholder="e.g. Tax help" required>
+      <button type="submit">Add want</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Matches</h2>
+  {% if matches %}
+  <ul class="grid">
+    {% for m in matches %}
+    <li class="card match">
+      <h3>{{ m.name }}</h3>
+      <p class="match-label">They offer what you want:</p>
+      {{ tags(m.they_offer) }}
+      <p class="match-label">They want what you offer:</p>
+      {{ tags(m.they_want) }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No matches yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

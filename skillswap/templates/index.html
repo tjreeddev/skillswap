@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="intro">
+  <h1>SkillSwap</h1>
+  <p>Trade the services you offer for the services you need. Create a profile,
+    list what you offer and what you want, and see who you could swap with.</p>
+</section>
+
+<section class="panel">
+  <h2>Create a profile</h2>
+  <form method="post" action="{{ url_for('create_profile') }}">
+    <label for="profile-name">Your name</label>
+    <div class="form-row">
+      <input type="text" id="profile-name" name="name" placeholder="e.g. Ana Lee" required>
+      <button type="submit">Create</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Existing profiles</h2>
+  {% if profiles %}
+  <ul class="grid">
+    {% for p in profiles %}
+    <li><a class="card" href="{{ url_for('profile', profile_id=p.id) }}">{{ p.name }}</a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No profiles yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
