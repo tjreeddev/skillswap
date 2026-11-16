@@ -1,0 +1,136 @@
+# SkillSwap Specification
+
+Source: `problem.md` (requirements R1–R5). This spec adds only the decisions
+needed to implement and test those requirements. Anything not listed here is
+out of scope.
+
+## Overview
+
+SkillSwap is a small local web app. A user creates a profile, lists the
+services they offer and the services they want, and sees the other users they
+could trade with.
+
+## Decisions
+
+- **Stack:** Python with Flask, server-rendered HTML (Jinja templates), and no
+  JavaScript framework. Tests use pytest.
+- **Storage:** one JSON file (default `data.json`). The path is configurable so
+  tests can use a temporary file.
+- **Current profile:** taken from the URL (`/profile/<id>`). There are no
+  logins, passwords, sessions, or cookies.
+- **Service comparison:** two services are the same when they are equal after
+  normalization, which means trimming the ends, collapsing internal whitespace
+  to one space, and lowercasing. Substrings do not match: `"logo"` does not
+  match `"logo design"`.
+- **Single user at a time:** there is no concurrency handling or file locking.
+
+## Requirements
+
+### R1. Create or choose a profile
+
+- A user can create a profile by entering a name.
+- Names are trimmed. A blank name is rejected with an error message.
+- Names must be unique, ignoring case and extra whitespace. A duplicate name is
+  rejected with an error message.
+- Each profile gets a unique id.
+- The home page (`/`) shows a form to create a profile and a list of all
+  existing profiles. Choosing one opens that profile's page.
+- Requesting a profile id that does not exist returns 404.
+
+### R2. Add offered and wanted services
+
+- The profile page has one form to add a service the user **offers** and
+  another to add a service they **want**.
+- Each submission adds one service as free text.
+- A blank service is rejected with an error message.
+- Adding a service that already exists in the same list (after normalization)
+  is ignored, so it is stored only once.
+- Services are stored as the user typed them, trimmed. They are normalized
+  only when compared.
+- The profile page shows the user's current offers and wants.
+
+### R3. Show matches
+
+- For the current profile A, another profile B is a **match** when both of
+  these are true:
+  1. B offers at least one service that A wants.
+  2. B wants at least one service that A offers.
+- A profile never matches itself.
+- A profile with no offers or no wants has no matches.
+- The profile page lists every match. Each match shows:
+  - B's name.
+  - The services B offers that A wants.
+  - The services B wants that A offers.
+- If there are no matches, the page says so.
+
+### R4. Persistence
+
+- All profiles and their services are saved to the JSON file after every
+  change.
+- When the app starts, it loads that file, so data is still there after a
+  restart.
+- If the file does not exist, the app starts with no profiles and does not
+  crash.
+- File format:
+
+  ```json
+  {
+    "profiles": [
+      {"id": "1", "name": "Ana", "offers": ["Logo design"], "wants": ["Tax help"]}
+    ]
+  }
+  ```
+
+### R5. Runs locally in a browser
+
+- The app starts with one command (`uv run python -m skillswap`) and serves
+  pages at `http://127.0.0.1:5000`.
+- The user does everything through a web browser.
+
+## Pages and routes
+
+| Method | Path                    | Purpose                                          |
+|--------|-------------------------|--------------------------------------------------|
+| GET    | `/`                     | Create-profile form and list of existing profiles |
+| POST   | `/profiles`             | Create a profile, then redirect to its page      |
+| GET    | `/profile/<id>`         | Show offers, wants, add forms, and matches       |
+| POST   | `/profile/<id>/offers`  | Add an offered service, then redirect back       |
+| POST   | `/profile/<id>/wants`   | Add a wanted service, then redirect back         |
+
+## Out of scope
+
+The following are not required by R1–R5 and will not be built:
+
+- Deleting or editing profiles or services
+- Login, passwords, or accounts
+- Messaging, ratings, or contacting matches
+- Substring, fuzzy, or category-based matching
+- Multi-user or networked deployment, and databases other than the JSON file
+
+## Acceptance tests
+
+- **R1:**
+  - Creating a profile makes it appear on `/`.
+  - `GET /profile/<id>` returns 200 and shows the name.
+  - A blank name is rejected.
+  - A duplicate name in different case is rejected.
+  - An unknown id returns 404.
+- **R2:**
+  - An added offer is stored in the offers list and shown on the page.
+  - An added want is stored in the wants list and shown on the page.
+  - A blank service is rejected.
+  - A repeated service in different case or spacing is stored once.
+- **R3:**
+  - A mutual match is listed with the correct matching services.
+  - A match in one direction only is not listed.
+  - A profile never matches itself.
+  - A profile with no services has no matches.
+  - Variants in case and spacing match, and a substring does not.
+  - The profile page shows the matches.
+- **R4:**
+  - Data written by one app instance is visible to a new instance that uses
+    the same file.
+  - A missing file gives an empty app without crashing.
+- **R5:**
+  - The app factory creates an app, and `GET /` returns 200 with HTML.
+  - Opening the app in a real browser is checked by hand.
